@@ -1,35 +1,55 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 import "./index.css";
-import { ApolloProvider, Query, useQuery } from "react-apollo";
-import { ApolloClient, InMemoryCache, gql, HttpLink } from "apollo-boost";
 import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
-import Login from "./components/Forms";
+import { Login } from "./components/Forms";
 import Home from "./components/Home";
-const link = new HttpLink({
-  uri: "http://localhost:4000"
-});
-const client = new ApolloClient({
-  link,
-  cache: new InMemoryCache()
-});
-class App extends React.Component {
-  render() {
-    return (
-      <ApolloProvider client={client}>
-        <Router>
-          <Switch>
-            <Route path="/" exact>
-              <Home />
-            </Route>
-            <Route path="/login">
-              <Login />
-            </Route>
-          </Switch>
-        </Router>
-      </ApolloProvider>
-    );
-  }
+import { AuthContext } from "./components/AuthContext";
+import PrivateRoute from "./components/PrivateRoute";
+// import { useAuth } from "./components/useAuth";
+function App() {
+  const [isAuthenticated, setAuthenticated] = useState(true);
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setAuthenticated(false);
+    } else {
+      setAuthenticated(true);
+    }
+  }, [isAuthenticated, setAuthenticated]);
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, setAuthenticated }}>
+      <Router>
+        <Switch>
+          <Route path="/" exact>
+            <Home />
+          </Route>
+          <Route path="/login">
+            <Login />
+          </Route>
+          <PrivateRoute
+            component={() => {
+              return (
+                <div>
+                  <h2>I'm protected route</h2>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem("token");
+                      setAuthenticated(false);
+                    }}
+                  >
+                    Sign out
+                  </button>
+                </div>
+              );
+            }}
+            redirectTo="/login"
+            path="/protected"
+          />
+        </Switch>
+      </Router>
+    </AuthContext.Provider>
+  );
 }
 
 export default App;

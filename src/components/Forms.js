@@ -1,8 +1,12 @@
-import React from "react";
+import React, { useContext } from "react";
 import { Field, ErrorMessage, Formik } from "formik";
 import * as yup from "yup";
 import { useMutation } from "react-apollo";
 import { LOGIN_USER } from "./queries";
+import { useAuth } from "./useAuth";
+import { AuthContext } from "./AuthContext";
+import { Redirect } from "react-router-dom";
+
 export const SignUp = () => {
   return (
     <div>
@@ -10,8 +14,11 @@ export const SignUp = () => {
     </div>
   );
 };
+
 export function Login() {
-  const [loginUser, { data, loading }] = useMutation(LOGIN_USER);
+  const [loginUser, { loading }] = useMutation(LOGIN_USER);
+  const { isAuthenticated, setAuthenticated } = useContext(AuthContext);
+  if (isAuthenticated) return <Redirect to="/protected" />;
   return (
     <div>
       <h2>Login form</h2>
@@ -22,11 +29,18 @@ export function Login() {
         }}
         onSubmit={(values, { setErrors }) => {
           loginUser({
-            variables: { email: values.email, password: values.password }
+            variables: {
+              email: values.email,
+              password: values.password
+            }
           }).then(({ data }) => {
             const { loginUser } = data;
+            localStorage.setItem("token", loginUser.token);
+            setAuthenticated(true);
             if (loginUser.res.error) {
-              setErrors({ [loginUser.res.input]: loginUser.res.message });
+              setErrors({
+                [loginUser.res.input]: loginUser.res.message
+              });
             }
           });
         }}
@@ -43,11 +57,6 @@ export function Login() {
         })}
       >
         {({ handleSubmit, touched, errors, ...args }) => {
-          if (data) {
-            // const {
-            //   res: { error, message }
-            // } = data;
-          }
           return (
             <form onSubmit={handleSubmit}>
               <label>
@@ -60,12 +69,9 @@ export function Login() {
               <label>
                 Password
                 <Field name="password" type="password" placeholder="bitches" />
-                {touched.password && errors.password && (
-                  <span>{errors.password}</span>
-                )}
+                <ErrorMessage name="email" />
               </label>
               <div>
-                {/* error && <h2>{message}</h2> */}
                 <button type="submit">{loading ? "Loading " : "Submit"}</button>
               </div>
             </form>
@@ -75,4 +81,3 @@ export function Login() {
     </div>
   );
 }
-export default Login;
